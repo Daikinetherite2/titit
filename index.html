@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcadia Studio | Professional Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Jitsi Meet API untuk ArcadiaCord Video/Voice -->
+    <script src="https://meet.jit.si/external_api.js"></script>
+</head>
+<body>
+    <canvas id="blackhole"></canvas>
+
+    <div id="custom-context-menu" class="context-menu">
+        <div class="context-item" id="ctx-refresh">🔄 Refresh Data</div>
+        <div class="context-item" id="ctx-support">📩 Hubungi Support</div>
+        <div class="context-item" id="ctx-theme">🎨 Ganti Tema Aksen</div>
+    </div>
+
+    <div id="toast-container"></div>
+    <div id="global-banner" class="global-banner" style="display: none;"><span id="banner-text"></span></div>
+
+    <!-- Modal Edit Plugin -->
+    <div id="edit-plugin-modal" class="modal">
+        <div class="modal-content" style="height: auto; max-width: 450px;">
+            <div class="modal-header">
+                <h3>✏️ Edit Plugin</h3>
+                <span class="close-modal-btn" data-target="edit-plugin-modal">&times;</span>
+            </div>
+            <form id="form-edit-plugin" style="padding: 20px;">
+                <input type="hidden" id="edit-plug-id">
+                <input type="text" id="edit-plug-icon" placeholder="Icon (Emoji)" required>
+                <input type="text" id="edit-plug-title" placeholder="Nama Plugin" required>
+                <textarea id="edit-plug-desc" placeholder="Deskripsi Singkat" rows="3" required></textarea>
+                <input type="url" id="edit-plug-url" placeholder="Link Preview Web / Download (Opsional)">
+                <button type="submit" class="btn btn-primary w-100">Simpan Perubahan</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Edit Series -->
+    <div id="edit-series-modal" class="modal">
+        <div class="modal-content" style="height: auto; max-width: 450px;">
+            <div class="modal-header">
+                <h3>✏️ Edit Series</h3>
+                <span class="close-modal-btn" data-target="edit-series-modal">&times;</span>
+            </div>
+            <form id="form-edit-series" style="padding: 20px;">
+                <input type="hidden" id="edit-series-id">
+                <input type="url" id="edit-series-img" placeholder="Link URL Gambar" required>
+                <input type="text" id="edit-series-title" placeholder="Nama Series" required>
+                <textarea id="edit-series-desc" placeholder="Deskripsi Series" rows="3" required></textarea>
+                <button type="submit" class="btn btn-primary w-100">Simpan Perubahan</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="loading-screen">
+        <div class="loading-logo">ARCADIA<span class="dot">.</span></div>
+        <div class="loading-bar-container"><div class="loading-bar"></div></div>
+    </div>
+
+    <div class="nav-container">
+        <div class="nav-island"></div>
+        <nav>
+            <div class="logo">ARCADIA STUDIO.</div>
+            <div class="nav-links">
+                <button class="nav-btn active" data-target="dashboard">Dashboard</button>
+                <button class="nav-btn" data-target="arcadiacord">ArcadiaCord</button>
+                <button class="nav-btn" data-target="plugins">Plugins</button>
+                <button class="nav-btn" data-target="series">Series</button>
+                <button class="nav-btn" data-target="team">Team</button>
+                <button class="nav-btn" data-target="ticket" id="nav-support-btn">Support <span class="unread-dot" id="support-unread" style="display:none;"></span></button>
+                <button class="nav-btn" id="nav-auth" data-target="auth">Login</button>
+                <button class="nav-btn" id="theme-toggle-btn" style="font-size: 1.2rem;">☀️</button>
+            </div>
+        </nav>
+    </div>
+
+    <div id="main-wrapper">
+        <div class="section-container" style="max-width: 1000px;">
+            
+            <div id="dashboard" class="section active">
+                <div class="badge">Sistem Aktif</div>
+                <h2 id="view-dash-title">Welcome to Arcadia</h2>
+                <p id="view-dash-desc">Pusat kontrol utama ekosistem Arcadia Studio.</p>
+                <div class="action-buttons">
+                    <a href="https://discord.com" target="_blank" class="btn btn-primary">Join Discord</a>
+                </div>
+            </div>
+
+            <!-- ARCADIACORD SECTION -->
+            <div id="arcadiacord" class="section" style="padding: 20px;">
+                <h2 style="margin-bottom: 5px;">ArcadiaCord 🎙️</h2>
+                <p style="font-size: 0.9rem;">Komunikasi Global dengan Voice, Video, Screen Share, & Text.</p>
+                
+                <div class="cord-container">
+                    <!-- Kiri: Video/Voice Call (Jitsi) -->
+                    <div class="cord-video-area">
+                        <div id="jitsi-meet-container" style="display: none; width: 100%; height: 100%; border-radius: 12px; overflow: hidden;"></div>
+                        <div id="jitsi-join-prompt" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                            <h3>Global Voice & Video</h3>
+                            <p style="font-size: 0.85rem; margin-bottom: 20px;">Berisi Noise Suppression, Screen Share, dan Video Call HQ.</p>
+                            <button id="btn-join-voice" class="btn btn-primary">Join Voice Channel</button>
+                        </div>
+                    </div>
+
+                    <!-- Kanan: Global Chat -->
+                    <div class="cord-chat-area">
+                        <div class="chat-header">🌐 Global Chat</div>
+                        <div class="discord-chat-box" id="global-chat-box" style="height: 350px;">
+                            <p style="text-align:center; font-size: 0.8rem; color: var(--text-muted);">Memuat Global Chat...</p>
+                        </div>
+                        <form id="global-chat-form" class="discord-chat-input">
+                            <input type="text" id="global-chat-input" placeholder="Ketik ke server global..." required autocomplete="off">
+                            <button type="submit" class="btn btn-primary">Kirim</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div id="plugins" class="section">
+                <h2>Premium Plugins</h2>
+                <input type="text" id="search-plugins" class="search-bar" placeholder="🔍 Cari plugin...">
+                <div class="plugin-grid" id="plugins-container">
+                    <div class="plugin-card skel-card skeleton"></div><div class="plugin-card skel-card skeleton"></div>
+                </div>
+            </div>
+
+            <div id="series" class="section">
+                <h2>Arcadia Series</h2>
+                <input type="text" id="search-series" class="search-bar" placeholder="🔍 Cari series...">
+                <div class="plugin-grid" id="series-container">
+                    <div class="plugin-card skel-card skeleton"></div><div class="plugin-card skel-card skeleton"></div>
+                </div>
+            </div>
+
+            <!-- TEAM SECTION -->
+            <div id="team" class="section">
+                <h2>Arcadia Team</h2>
+                <p>Mengenal lebih dekat orang-orang di balik Arcadia Studio.</p>
+                <div class="plugin-grid" id="team-container" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="plugin-card skel-card skeleton"></div><div class="plugin-card skel-card skeleton"></div>
+                </div>
+            </div>
+
+            <div id="ticket" class="section">
+                <h2>Live Support</h2>
+                <div id="ticket-create-view">
+                    <p>Buat ruang obrolan pribadi dengan tim Arcadia.</p>
+                    <form id="ticket-form">
+                        <input type="text" id="ticket-subject" placeholder="Subjek / Masalah Singkat" required>
+                        <button type="submit" class="btn btn-primary w-100">Buka Tiket Baru</button>
+                    </form>
+                </div>
+                <div id="ticket-chat-view" style="display: none;">
+                    <div class="chat-header">Room: <span id="user-chat-subject" style="color: var(--accent);"></span></div>
+                    <div class="discord-chat-box" id="user-chat-box"></div>
+                    <form id="user-chat-form" class="discord-chat-input">
+                        <input type="text" id="user-chat-input" placeholder="Ketik pesan... (Bisa pakai **tebal** & URL)" required autocomplete="off">
+                        <button type="submit" class="btn btn-primary">Kirim</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="auth" class="section">
+                <div id="auth-panel-login" class="auth-panel active">
+                    <h2>Welcome Back</h2>
+                    <p>Login ke akun Arcadia ID.</p>
+                    <form id="login-form">
+                        <input type="email" id="login-email" placeholder="Email Address" required>
+                        <input type="password" id="login-password" placeholder="Password" required>
+                        <button type="submit" class="btn btn-primary w-100" id="login-submit-btn">Login</button>
+                    </form>
+                    <div class="auth-divider"><span>atau masuk dengan</span></div>
+                    <div style="display: flex; gap: 10px; flex-direction: column;">
+                        <button type="button" class="btn btn-outline w-100" id="passkey-login-btn">🔐 Login with Passkey</button>
+                        <button type="button" class="btn btn-outline w-100" id="google-login-btn">🌐 Continue with Google</button>
+                    </div>
+                    <p class="auth-switch">Belum punya akun? <span class="switch-to-register">Daftar sekarang</span></p>
+                </div>
+
+                <div id="auth-panel-register" class="auth-panel">
+                    <h2>Create Account</h2>
+                    <p>Bergabunglah dengan ekosistem kami.</p>
+                    <form id="register-form">
+                        <input type="email" id="reg-email" placeholder="Email Address" required>
+                        <input type="password" id="reg-password" placeholder="Password" required>
+                        <input type="password" id="reg-confirm-password" placeholder="Confirm Password" required>
+                        <button type="submit" class="btn btn-primary w-100" id="reg-submit-btn">Register</button>
+                    </form>
+                    <p class="auth-switch">Sudah punya akun? <span class="switch-to-login">Login di sini</span></p>
+                </div>
+            </div>
+            
+            <div id="profile" class="section">
+                <h2>Akun Saya</h2>
+                <div id="profile-display" class="profile-card">
+                    <div class="profile-banner" id="view-prof-banner"></div>
+                    <div class="profile-avatar-container">
+                        <img id="view-prof-img" src="https://ui-avatars.com/api/?name=User&background=3b82f6&color=fff" alt="Avatar">
+                        <div class="status-indicator" id="view-prof-status" style="background: #10b981;"></div>
+                    </div>
+                    <h3 id="view-prof-name">Pengguna Arcadia</h3>
+                    <p id="view-prof-email" style="font-size: 0.85rem; color: var(--accent); margin-bottom: 5px;">-</p>
+                    <p id="view-prof-bio" style="font-size: 0.9rem; margin-top: 10px;">Belum ada bio.</p>
+                    <button id="btn-show-edit-prof" class="btn btn-outline w-100" style="margin-top: 20px;">Edit Profil & Preferensi</button>
+                </div>
+
+                <form id="profile-edit-form" style="display: none; background: var(--glass-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--border-color); margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px;">Edit Profil</h3>
+                    <input type="text" id="edit-prof-name" placeholder="Nickname / Nama Tampilan" required>
+                    <input type="url" id="edit-prof-img" placeholder="URL Foto Profil">
+                    <input type="url" id="edit-prof-banner" placeholder="URL Banner Profile">
+                    <textarea id="edit-prof-bio" placeholder="Tulis bio singkatmu..." rows="2"></textarea>
+                    
+                    <h4 style="margin: 15px 0 10px; font-size: 0.9rem;">Status Profil</h4>
+                    <select id="edit-prof-status" class="styled-select">
+                        <option value="online">🟢 Online</option>
+                        <option value="idle">🌙 Idle</option>
+                        <option value="dnd">🔴 Do Not Disturb</option>
+                    </select>
+
+                    <h4 style="margin: 15px 0 10px; font-size: 0.9rem;">Pilih Tema Aksen</h4>
+                    <div class="theme-options">
+                        <div class="color-circle" data-color="#3b82f6" style="background: #3b82f6;"></div> 
+                        <div class="color-circle" data-color="#ef4444" style="background: #ef4444;"></div> 
+                        <div class="color-circle" data-color="#10b981" style="background: #10b981;"></div> 
+                        <div class="color-circle" data-color="#a855f7" style="background: #a855f7;"></div> 
+                    </div>
+
+                    <h4 style="margin: 15px 0 10px; font-size: 0.9rem;">Kinerja / Baterai</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 8px;">
+                        <span style="font-size: 0.9rem;">Animasi Background</span>
+                        <label class="switch"><input type="checkbox" id="toggle-anim" checked><span class="slider"></span></label>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="button" id="btn-cancel-edit-prof" class="btn btn-outline w-100">Batal</button>
+                        <button type="submit" class="btn btn-primary w-100">Simpan</button>
+                    </div>
+                </form>
+
+                <div id="profile-admin-area" style="display: none; margin: 20px 0; padding: 20px; border: 1px solid var(--accent); border-radius: 12px; background: rgba(var(--accent-rgb), 0.05);">
+                    <div class="badge badge-admin" style="margin-bottom: 10px;">ADMIN PRIVILEGE 🛡️</div>
+                    <p style="font-size: 0.9rem; margin-bottom: 15px;">Kamu memiliki akses ke Arcadia Control Panel.</p>
+                    <button id="btn-goto-admin" class="btn btn-primary w-100">Buka Admin Panel</button>
+                </div>
+                <button id="logout-btn" class="btn btn-outline w-100" style="border-color: #ef4444; color: #ef4444;">Logout System</button>
+            </div>
+
+            <!-- ADMIN PANEL -->
+            <div id="admin-panel" class="section">
+                <div class="badge badge-admin">ARCADIA CONTROL PANEL</div>
+                <h2>Content Management</h2>
+                
+                <div class="analytics-grid">
+                    <div class="stat-box"><h4>Total Plugins</h4><span id="stat-plugins">0</span></div>
+                    <div class="stat-box"><h4>Total Series</h4><span id="stat-series">0</span></div>
+                    <div class="stat-box"><h4>Open Tickets</h4><span id="stat-tickets">0</span></div>
+                </div>
+
+                <div class="admin-grid" style="grid-template-columns: 1fr;">
+                    <div class="admin-card">
+                        <h3>✏️ Edit Homepage & Banner</h3>
+                        <form id="admin-edit-dash">
+                            <input type="text" id="edit-dash-title" placeholder="Judul Dashboard" required>
+                            <textarea id="edit-dash-desc" placeholder="Deskripsi Dashboard" rows="2" required></textarea>
+                            <input type="text" id="edit-banner-text" placeholder="Teks Global Banner (Kosongkan untuk menyembunyikan)">
+                            <button type="submit" class="btn btn-outline w-100">Simpan Perubahan</button>
+                        </form>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                        <div class="admin-card">
+                            <h3>➕ Tambah Plugin</h3>
+                            <form id="admin-add-plugin">
+                                <input type="text" id="add-plug-icon" placeholder="Icon (Emoji)" required>
+                                <input type="text" id="add-plug-title" placeholder="Nama Plugin" required>
+                                <textarea id="add-plug-desc" placeholder="Deskripsi Singkat" rows="2" required></textarea>
+                                <input type="url" id="add-plug-url" placeholder="Link Preview Web (Opsional)">
+                                <button type="submit" class="btn btn-outline w-100">Tambah Plugin</button>
+                            </form>
+                        </div>
+                        <div class="admin-card">
+                            <h3>🎬 Tambah Series</h3>
+                            <form id="admin-add-series">
+                                <input type="url" id="add-series-img" placeholder="Link URL Gambar" required>
+                                <input type="text" id="add-series-title" placeholder="Nama Series" required>
+                                <textarea id="add-series-desc" placeholder="Deskripsi Series" rows="2" required></textarea>
+                                <button type="submit" class="btn btn-outline w-100">Tambah Series</button>
+                            </form>
+                        </div>
+                        <div class="admin-card">
+                            <h3>👥 Tambah Team Member</h3>
+                            <form id="admin-add-team">
+                                <input type="text" id="add-team-name" placeholder="Nama Lengkap / Nickname" required>
+                                <input type="text" id="add-team-role" placeholder="Role (Cth: 3D Artist)" required>
+                                <input type="url" id="add-team-img" placeholder="URL Foto Profil" required>
+                                <input type="url" id="add-team-yt" placeholder="Link Channel YouTube" required>
+                                <button type="submit" class="btn btn-outline w-100">Tambah Anggota</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- ADMIN CHAT TICKET -->
+                    <div class="admin-card">
+                        <h3>📩 Active User Tickets</h3>
+                        <div id="admin-ticket-list" class="ticket-list"><p>Memuat tiket...</p></div>
+                        
+                        <div id="admin-chat-view" style="display: none; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                            <div class="chat-header">Membalas: <span id="admin-chat-target" style="color: var(--accent);"></span></div>
+                            <div class="discord-chat-box" id="admin-chat-box" style="height: 250px;"></div>
+                            
+                            <form id="admin-chat-form" style="display: flex; flex-direction: column; gap: 10px; background: var(--input-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color);">
+                                <input type="text" id="admin-chat-input" placeholder="Ketik balasan... (Gunakan **tebal** atau https://link)" required autocomplete="off" style="width: 100%; border: none; background: transparent; color: var(--text-main); font-size: 1rem; outline: none;">
+                                <div style="display: flex; gap: 10px; width: 100%;">
+                                    <button type="submit" class="btn btn-primary" style="flex: 1;">Kirim Balasan</button>
+                                    <button type="button" id="admin-close-ticket" class="btn btn-outline" style="border-color: #ef4444; color: #ef4444; flex: 1;">Tutup Tiket</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
